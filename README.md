@@ -23,4 +23,4 @@ roslaunch tum_ardrone tum_ardrone_2.launch
 ```
 ## How to use
 
-Use this package as you would use the tum_ardrone. This package has an additional parameter `useSGPS`. When this is set to ``true`` the position of the drone will be determined using the gazebo simulated GPS of the [tum_simulator](https://github.com/dougvk/tum_simulator) package. Make sure you switch `usePTAM` to ``false`` or else the vision might mess up with the position estimation. 
+Use this package as you would use the [tum_ardrone](http://wiki.ros.org/tum_ardrone). This package has an additional parameter `useSGPS`. When this is set to ``true`` the position of the drone will be determined using the gazebo simulated GPS of the [tum_simulator](https://github.com/dougvk/tum_simulator) package. Make sure you switch `usePTAM` to ``false`` or else the vision might mess up with the position estimation. 
