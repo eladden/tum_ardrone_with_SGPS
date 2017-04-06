@@ -1,0 +1,143 @@
+/*
+ * Copyright (C) 2017, Elad Denenberg.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *   * Neither the names of Technion or Elad Denenberg. nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "ros/ros.h"
+#include "std_msgs/Float64.h"
+#include "sensor_msgs/NavSatFix.h"
+#include "geometry_msgs/Point.h"
+#include "geometry_msgs/Vector3.h"
+
+#include <sstream>
+#include <cmath>
+#include <math.h>
+
+
+static const double R = 6378137.0;
+static const double f = 1/298.257224;
+double C;
+double S;
+double cosLat;
+double sinLat;
+double cosLon;
+double sinLon;
+double fix_lon;
+double fix_lat;
+double fix_alt;
+double xpos;
+double ypos;
+double zpos;
+double xpos_0;
+double ypos_0;
+double zpos_0;
+bool flag = false;
+ 
+
+ void fixCallback(const sensor_msgs::NavSatFix::ConstPtr &msg)
+{
+    fix_lon=msg->longitude;
+    fix_lon = fix_lon * M_PI /180;
+    fix_lat=msg->latitude;
+    fix_lat = fix_lat * M_PI /180;
+    fix_alt=msg->altitude;
+    
+    cosLat = cos(fix_lat);
+    cosLon = cos(fix_lon);
+    sinLat = sin(fix_lat);
+    sinLon = sin(fix_lon);
+
+    C = 1.0/sqrt(cosLat * cosLat + (1 - f) * (1 - f) * sinLat * sinLat);
+    S = (1.0 - f) * (1.0 - f) * C;
+
+}
+
+int main(int argc, char **argv)
+
+{
+  
+  ros::init(argc, argv, "UfGPS");
+
+    ros::NodeHandle n;
+
+ 
+  ros::Publisher UFGPS_pub = n.advertise<geometry_msgs::Point>("UFGPS", 1000);
+  //ros::Publisher ERR_pub = n.advertise<std_msgs::Float64>("UFGPSERR", 1000);
+
+  ros::Subscriber NSFIX_sub = n.subscribe("/fix", 1000, fixCallback );
+  //ros::Subscriber GPS_sub = n.subscribe("/fix_velocity", 1000, fexvelCallback);
+
+  ros::Rate loop_rate(10);
+
+  
+  int count = 0;
+  
+
+  while (ros::ok())
+  {
+    
+
+    geometry_msgs::Point positionMsg;
+    //std_msgs::Float64 ErrMsg;
+    
+    if (flag == false && count > 5){
+      xpos_0 = (R * C + fix_alt) * cosLat * cosLon;
+
+      ypos_0 = (R * C + fix_alt) * cosLat * sinLon;
+
+      zpos_0 = (R * C + fix_alt) *sinLat;
+      flag = true;
+    }
+    xpos = (R * C + fix_alt) * cosLat * cosLon;;
+    xpos = xpos - xpos_0;
+
+    ypos = (R * C + fix_alt) * cosLat * sinLon;
+    ypos = ypos - ypos_0;
+
+    zpos = (R * C + fix_alt) *sinLat;
+    zpos = zpos - zpos_0;
+
+    
+
+    positionMsg.x = xpos;
+    positionMsg.y = ypos;
+    positionMsg.z = zpos;
+
+    //ErrMsg.data = pow(pow(xpos,2) + pow(ypos,2) + pow(zpos,2),.5);
+    
+
+    
+    UFGPS_pub.publish(positionMsg);
+    //ERR_pub.publish(ErrMsg);
+
+    ros::spinOnce();
+
+    loop_rate.sleep();
+    ++count;
+  }
+
+
+  return 0;
+}
