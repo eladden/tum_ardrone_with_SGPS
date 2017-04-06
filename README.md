@@ -8,7 +8,7 @@ This is a slight modification of the [tum_ardrone] (https://github.com/tum-visio
 
 ``` bash
 cd catkin_ws/src
-git clone https://github.com/eladden/tum_ardrone.git
+git clone https://github.com/eladden/tum_ardrone_with_SGPS.git tum_ardrone
 cd ..
 rosdep install tum_ardrone
 catkin_make
